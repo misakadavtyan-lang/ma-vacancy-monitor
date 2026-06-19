@@ -15,7 +15,8 @@ app.get('/api/vacancies', async (req, res) => {
 
     const hhRes = await fetch(hhUrl, {
       headers: {
-        'User-Agent': 'MA-Vacancy-Monitor-misak/1.0 (misak.contact@gmail.com)',
+  	'User-Agent': 'api-test-agent',
+  	'Accept': 'application/json',
       },
     });
 
