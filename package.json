@@ -1,0 +1,16 @@
+{
+  "name": "ma-vacancy-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Сайт-монитор вакансий M&A на hh.ru через api.hh.ru с собственным прокси",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

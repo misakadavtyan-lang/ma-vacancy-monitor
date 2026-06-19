@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M&A Vacancies — hh.ru monitor</title>
+<style>
+  :root{
+    --bg:#0b1320;
+    --bg-panel:#101b2d;
+    --line:#22324a;
+    --ink:#e8ecf3;
+    --ink-dim:#8b9ab3;
+    --gold:#c9a449;
+    --gold-dim:#8a7331;
+    --green:#4caf7d;
+    --red:#d9685f;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --serif: 'Georgia', 'Times New Roman', serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top right, rgba(201,164,73,0.06), transparent 50%),
+      var(--bg);
+    color:var(--ink);
+    font-family: var(--mono);
+    min-height:100vh;
+  }
+  header{
+    border-bottom:1px solid var(--line);
+    padding:28px 32px 22px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+  }
+  .brand{display:flex; flex-direction:column; gap:4px;}
+  .brand .tag{
+    font-size:11px; letter-spacing:.2em; color:var(--gold); text-transform:uppercase;
+  }
+  h1{
+    font-family:var(--serif);
+    font-size:30px;
+    margin:0;
+    font-weight:600;
+    letter-spacing:.01em;
+  }
+  h1 span{color:var(--gold); font-style:italic;}
+  .meta{font-size:12px; color:var(--ink-dim); text-align:right; line-height:1.6;}
+  .meta b{color:var(--ink);}
+
+  .toolbar{
+    padding:20px 32px;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    border-bottom:1px solid var(--line);
+    background:rgba(255,255,255,0.012);
+  }
+  .field{display:flex; flex-direction:column; gap:6px; min-width:140px;}
+  .field label{font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-dim);}
+  input, select{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    color:var(--ink);
+    font-family:var(--mono);
+    font-size:13px;
+    padding:9px 10px;
+    border-radius:3px;
+    outline:none;
+  }
+  input:focus, select:focus{border-color:var(--gold-dim);}
+  input[type=text]{min-width:200px;}
+  .field.grow{flex:1; min-width:200px;}
+  button{
+    background:var(--gold);
+    color:#1a1406;
+    border:none;
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:11px 22px;
+    border-radius:3px;
+    cursor:pointer;
+    height:38px;
+    align-self:flex-end;
+  }
+  button:hover{background:#ddb95c;}
+  button:disabled{background:var(--line); color:var(--ink-dim); cursor:wait;}
+
+  .statusbar{
+    padding:10px 32px;
+    font-size:12px;
+    color:var(--ink-dim);
+    border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  .statusbar .err{color:var(--red);}
+  .statusbar a{color:var(--gold); text-decoration:none;}
+
+  main{padding:8px 32px 60px;}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--ink-dim);
+    padding:14px 10px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  thead th:hover{color:var(--gold);}
+  thead th.active{color:var(--gold);}
+  tbody tr{border-bottom:1px solid var(--line);}
+  tbody tr:hover{background:rgba(201,164,73,0.04);}
+  td{padding:14px 10px; vertical-align:top;}
+  td.title a{color:var(--ink); text-decoration:none; font-weight:600;}
+  td.title a:hover{color:var(--gold);}
+  td.company{color:var(--ink-dim); font-size:12px; margin-top:2px;}
+  .salary{color:var(--green); font-weight:600; white-space:nowrap;}
+  .salary.empty{color:var(--ink-dim); font-weight:400;}
+  .badge{
+    display:inline-block;
+    font-size:10px;
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    padding:2px 7px;
+    border-radius:20px;
+    margin-top:6px;
+  }
+  .empty-state{
+    text-align:center;
+    padding:80px 20px;
+    color:var(--ink-dim);
+  }
+  .empty-state .num{
+    font-family:var(--serif);
+    font-size:48px;
+    color:var(--gold-dim);
+    margin-bottom:10px;
+  }
+  .pager{
+    display:flex; justify-content:center; align-items:center; gap:16px;
+    padding:30px 0 10px; color:var(--ink-dim); font-size:12px;
+  }
+  .pager button{height:32px; padding:0 16px;}
+  .skeleton{
+    height:14px; background:linear-gradient(90deg,var(--line),#2a3c58,var(--line));
+    background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:2px;
+  }
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="tag">hh.ru · live feed</div>
+    <h1>M&amp;A <span>vacancy</span> monitor</h1>
+  </div>
+  <div class="meta">
+    источник: <b>api.hh.ru</b><br>
+    запрос: <b id="queryEcho">M&A</b>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="field grow">
+    <label>Ключевое слово</label>
+    <input type="text" id="kw" value="M&A">
+  </div>
+  <div class="field">
+    <label>Город</label>
+    <select id="area">
+      <option value="">Вся Россия</option>
+      <option value="1">Москва</option>
+      <option value="2">Санкт-Петербург</option>
+      <option value="3">Екатеринбург</option>
+      <option value="4">Новосибирск</option>
+      <option value="66">Нижний Новгород</option>
+      <option value="88">Казань</option>
+      <option value="113">Россия (вся)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Опыт</label>
+    <select id="exp">
+      <option value="">Любой</option>
+      <option value="noExperience">Нет опыта</option>
+      <option value="between1And3">1–3 года</option>
+      <option value="between3And6">3–6 лет</option>
+      <option value="moreThan6">6+ лет</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>З/п от, ₽</label>
+    <input type="text" id="salaryMin" placeholder="напр. 200000" inputmode="numeric">
+  </div>
+  <div class="field">
+    <label>Только с з/п</label>
+    <select id="onlySalary">
+      <option value="false">Нет</option>
+      <option value="true">Да</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Сортировка</label>
+    <select id="orderBy">
+      <option value="relevance">По релевантности</option>
+      <option value="publication_time">Сначала новые</option>
+      <option value="salary_desc">З/п: по убыванию</option>
+      <option value="salary_asc">З/п: по возрастанию</option>
+    </select>
+  </div>
+  <button id="searchBtn">Найти</button>
+</div>
+
+<div class="statusbar">
+  <div id="statusLeft">Готов к поиску.</div>
+  <div id="statusRight"></div>
+</div>
+
+<main>
+  <table id="resultsTable" style="display:none">
+    <thead>
+      <tr>
+        <th data-key="name">Вакансия</th>
+        <th data-key="employer">Компания</th>
+        <th data-key="area">Город</th>
+        <th data-key="experience">Опыт</th>
+        <th data-key="salary">Зарплата</th>
+        <th data-key="date">Опубликовано</th>
+      </tr>
+    </thead>
+    <tbody id="resultsBody"></tbody>
+  </table>
+  <div id="emptyState" class="empty-state">
+    <div class="num">M&amp;A</div>
+    Введите параметры и нажмите «Найти», чтобы получить вакансии с hh.ru
+  </div>
+  <div class="pager" id="pager" style="display:none">
+    <button id="prevPage">← Назад</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage">Вперёд →</button>
+  </div>
+</main>
+
+<script>
+const els = {
+  kw: document.getElementById('kw'),
+  area: document.getElementById('area'),
+  exp: document.getElementById('exp'),
+  salaryMin: document.getElementById('salaryMin'),
+  onlySalary: document.getElementById('onlySalary'),
+  orderBy: document.getElementById('orderBy'),
+  searchBtn: document.getElementById('searchBtn'),
+  statusLeft: document.getElementById('statusLeft'),
+  statusRight: document.getElementById('statusRight'),
+  table: document.getElementById('resultsTable'),
+  body: document.getElementById('resultsBody'),
+  emptyState: document.getElementById('emptyState'),
+  pager: document.getElementById('pager'),
+  prevPage: document.getElementById('prevPage'),
+  nextPage: document.getElementById('nextPage'),
+  pageInfo: document.getElementById('pageInfo'),
+  queryEcho: document.getElementById('queryEcho'),
+};
+
+let state = { page: 0, pages: 0, found: 0, sortKey: null, sortDir: 1, rawItems: [] };
+
+function fmtSalary(s){
+  if(!s) return {text:'не указана', empty:true};
+  const cur = s.currency === 'RUR' ? '₽' : (s.currency || '');
+  const from = s.from ? s.from.toLocaleString('ru-RU') : null;
+  const to = s.to ? s.to.toLocaleString('ru-RU') : null;
+  let text;
+  if(from && to) text = `${from}–${to} ${cur}`;
+  else if(from) text = `от ${from} ${cur}`;
+  else if(to) text = `до ${to} ${cur}`;
+  else text = 'не указана';
+  return {text, empty:false};
+}
+
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+function expLabel(exp){
+  return exp && exp.name ? exp.name : '—';
+}
+
+// Собственный serverless-прокси (см. /api/vacancies.js). Делает запрос к hh.ru
+// с сервера, поэтому браузерный CORS/403 не возникает.
+const PROXY_BASE = '/api/vacancies';
+
+function buildUrl(page){
+  const params = new URLSearchParams();
+  params.set('text', els.kw.value || 'M&A');
+  params.set('page', page);
+  params.set('per_page', 20);
+  params.set('order_by', els.orderBy.value);
+  if(els.area.value) params.set('area', els.area.value);
+  if(els.exp.value) params.set('experience', els.exp.value);
+  if(els.salaryMin.value.trim()) params.set('salary', els.salaryMin.value.trim());
+  if(els.onlySalary.value === 'true') params.set('only_with_salary', 'true');
+  return PROXY_BASE + '?' + params.toString();
+}
+
+async function search(page = 0){
+  state.page = page;
+  els.searchBtn.disabled = true;
+  els.searchBtn.textContent = 'Поиск…';
+  els.statusLeft.textContent = 'Загружаю вакансии с hh.ru…';
+  els.statusRight.textContent = '';
+  els.queryEcho.textContent = els.kw.value || 'M&A';
+
+  try{
+    const url = buildUrl(page);
+    const res = await fetch(url);
+    const text = await res.text();
+    let payload;
+    try { payload = JSON.parse(text); } catch { payload = null; }
+
+    if(!res.ok){
+      const detail = payload && payload.hh_response
+        ? (payload.hh_response.description || payload.hh_response.errors
+            ? JSON.stringify(payload.hh_response.errors || payload.hh_response.description)
+            : JSON.stringify(payload.hh_response))
+        : text;
+      throw new Error(`статус ${res.status} — ${detail}`);
+    }
+    const data = payload;
+    state.found = data.found || 0;
+    state.pages = data.pages || 0;
+    state.rawItems = (data.items || []).map(v => ({
+      id: v.id,
+      name: v.name,
+      url: v.alternate_url,
+      employer: v.employer ? v.employer.name : '—',
+      area: v.area ? v.area.name : '—',
+      experience: expLabel(v.experience),
+      salary: v.salary,
+      published_at: v.published_at,
+      schedule: v.schedule ? v.schedule.name : null,
+    }));
+    state.sortKey = null;
+    render();
+    els.statusLeft.textContent = state.found > 0
+      ? `Найдено вакансий: ${state.found.toLocaleString('ru-RU')}`
+      : 'Ничего не найдено по этому запросу.';
+    els.statusRight.innerHTML = `данные через собственный прокси → <b>api.hh.ru</b>`;
+  } catch(err){
+    els.statusLeft.innerHTML = `<span class="err">Ошибка запроса: ${err.message}</span>`;
+    els.statusRight.textContent = 'Проверьте соединение или попробуйте позже.';
+    els.table.style.display = 'none';
+    els.emptyState.style.display = 'block';
+    els.pager.style.display = 'none';
+  } finally {
+    els.searchBtn.disabled = false;
+    els.searchBtn.textContent = 'Найти';
+  }
+}
+
+function render(){
+  const items = [...state.rawItems];
+  if(state.sortKey){
+    items.sort((a,b)=>{
+      let av, bv;
+      if(state.sortKey === 'salary'){
+        av = a.salary ? (a.salary.from || a.salary.to || 0) : -1;
+        bv = b.salary ? (b.salary.from || b.salary.to || 0) : -1;
+      } else if(state.sortKey === 'date'){
+        av = new Date(a.published_at).getTime();
+        bv = new Date(b.published_at).getTime();
+      } else {
+        av = (a[state.sortKey] || '').toString().toLowerCase();
+        bv = (b[state.sortKey] || '').toString().toLowerCase();
+      }
+      if(av < bv) return -1 * state.sortDir;
+      if(av > bv) return 1 * state.sortDir;
+      return 0;
+    });
+  }
+
+  if(items.length === 0){
+    els.table.style.display = 'none';
+    els.emptyState.style.display = 'block';
+    els.emptyState.querySelector('.num') ? null : null;
+    els.emptyState.innerHTML = `<div class="num">∅</div>Вакансии не найдены. Попробуйте изменить фильтры.`;
+    els.pager.style.display = 'none';
+    return;
+  }
+
+  els.emptyState.style.display = 'none';
+  els.table.style.display = 'table';
+  els.body.innerHTML = items.map(v => {
+    const sal = fmtSalary(v.salary);
+    return `<tr>
+      <td class="title">
+        <a href="${v.url}" target="_blank" rel="noopener">${escapeHtml(v.name)}</a>
+        ${v.schedule ? `<div class="badge">${escapeHtml(v.schedule)}</div>` : ''}
+      </td>
+      <td class="company">${escapeHtml(v.employer)}</td>
+      <td>${escapeHtml(v.area)}</td>
+      <td>${escapeHtml(v.experience)}</td>
+      <td class="salary ${sal.empty ? 'empty':''}">${sal.text}</td>
+      <td>${fmtDate(v.published_at)}</td>
+    </tr>`;
+  }).join('');
+
+  els.pager.style.display = state.pages > 1 ? 'flex' : 'none';
+  els.pageInfo.textContent = `страница ${state.page + 1} из ${state.pages}`;
+  els.prevPage.disabled = state.page <= 0;
+  els.nextPage.disabled = state.page >= state.pages - 1;
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.key;
+    if(state.sortKey === key){
+      state.sortDir *= -1;
+    } else {
+      state.sortKey = key;
+      state.sortDir = 1;
+    }
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('active'));
+    th.classList.add('active');
+    render();
+  });
+});
+
+els.searchBtn.addEventListener('click', () => search(0));
+els.prevPage.addEventListener('click', () => { if(state.page > 0) search(state.page - 1); });
+els.nextPage.addEventListener('click', () => { if(state.page < state.pages - 1) search(state.page + 1); });
+els.kw.addEventListener('keydown', e => { if(e.key === 'Enter') search(0); });
+
+// initial search on load
+search(0);
+</script>
+</body>
+</html>
